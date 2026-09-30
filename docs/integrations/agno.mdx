@@ -1,0 +1,77 @@
+---
+title: "Agno Integration"
+sidebarTitle: "Agno"
+description: "Use a FalkorDB knowledge graph from Agno agents: a GraphRAG toolkit, the graph as agent knowledge, and Agno models as GraphRAG's LLM and embedder."
+---
+
+The Agno adapter builds on the [agent integration core](/agent-integrations) and supports `agno` 3.x.
+
+```bash
+pip install "graphrag-sdk[agno]"
+```
+
+## 1. Toolkit — the agent reads and writes the graph
+
+```python
+from agno.agent import Agent
+from agno.models.openai import OpenAIChat
+from graphrag_sdk.integrations.agno import GraphRAGTools
+
+tools = GraphRAGTools(rag)                       # rag: an existing GraphRAG instance
+agent = Agent(model=OpenAIChat(id="gpt-4o"), tools=[tools])
+agent.print_response("Remember that Ada wrote the first program, then summarize what you know.")
+```
+
+The toolkit registers every tool twice under the same name — a sync function for `agent.run()` and a coroutine for `agent.arun()` — and adds instructions telling the agent when to search vs. answer and to call `graph_flush` after a batch of writes.
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| `enable_answer`, `enable_search`, `enable_schema` | `True` | Read tools |
+| `enable_write` | `True` | `graph_remember`, `graph_flush` (+ `graph_ingest_file` with `allowed_dirs`) |
+| `allowed_dirs` | `None` | Directories `graph_ingest_file` may read |
+| `enable_cypher` / `enable_forget` / `all` | `False` | Opt-in tools |
+| `finalize_policy` | `"manual"` | `"manual"`, `"on_write"` or `"never"` |
+| `requires_confirmation_for_writes` | `False` | Agno human-in-the-loop confirmation for write tools (`graph_forget` always asks) |
+| `tool_names` | `None` | Rename tools, e.g. `{"graph_answer": "ask_knowledge_graph"}` |
+| `ingest_options` | `None` | Extra `GraphRAG.ingest` kwargs (`extractor`, `chunker`, ...) |
+
+`GraphRAGTools.from_config(connection, llm=..., embedder=...)` also creates the `GraphRAG` instance; call `tools.close()` when done.
+
+## 2. Knowledge — the graph as the agent's knowledge base
+
+```python
+from graphrag_sdk.integrations.agno import GraphRAGKnowledge, graphrag_knowledge_retriever
+
+agent = Agent(model=OpenAIChat(id="gpt-4o"), knowledge=GraphRAGKnowledge(rag), search_knowledge=True)
+# or
+agent = Agent(model=OpenAIChat(id="gpt-4o"), knowledge_retriever=graphrag_knowledge_retriever(rag))
+```
+
+`GraphRAGKnowledge` implements Agno's `KnowledgeProtocol`: the built-in `search_knowledge_base` tool runs GraphRAG retrieval and receives graph facts plus source passages as documents (recorded in `RunOutput.references`). It is read-only; share a toolkit's toolset (`GraphRAGKnowledge(toolset=tools.toolset)`) to combine it with write tools. Agno ignores `get_tools()` on knowledge objects, so pass `tools=knowledge.get_tools()` if you want the extra graph tools.
+
+`graphrag_knowledge_retriever(..., mode="sync")` works with both `run()` and `arun()`; `mode="async"` returns a coroutine function for `arun()`-only apps.
+
+## 3. Agno models as GraphRAG's LLM and embedder
+
+```python
+from agno.knowledge.embedder.openai import OpenAIEmbedder
+from graphrag_sdk import ConnectionConfig, GraphRAG
+from graphrag_sdk.integrations.agno import AgnoEmbedder, AgnoLLM
+
+rag = GraphRAG(
+    connection=ConnectionConfig(graph_name="kb"),
+    llm=AgnoLLM(OpenAIChat(id="gpt-4o-mini")),
+    embedder=AgnoEmbedder(OpenAIEmbedder(id="text-embedding-3-small", dimensions=256)),
+    embedding_dimension=256,
+)
+```
+
+<Warning>
+Use **separate model instances** for the agent and for `AgnoLLM`: Agno models keep clients and per-run state on the instance. Keep `embedding_dimension` equal to the embedder's `dimensions`; the graph stores the embedder name and dimension and rejects a mismatch later.
+</Warning>
+
+`AgnoLLM` calls `model.response()` in a worker thread by default (`use_async=True` calls `aresponse()` natively) and uses `response_format=` for structured extraction, falling back to JSON parsing of the reply.
+
+## Full example
+
+See [`examples/12_agno_agent.py`](https://github.com/FalkorDB/GraphRAG-SDK/blob/main/graphrag_sdk/examples/12_agno_agent.py).

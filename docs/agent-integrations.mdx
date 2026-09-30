@@ -1,0 +1,103 @@
+---
+title: "Agent Framework Integrations"
+sidebarTitle: "Agent Integrations"
+description: "Give AI agents a FalkorDB knowledge graph: a framework-neutral tool core with adapters for Agno, and plain typed functions for Google Antigravity, Google ADK, CrewAI, LangChain and pydantic-ai."
+---
+
+GraphRAG SDK ships a **framework-neutral agent core** in `graphrag_sdk.integrations`. It defines the graph tools once — names, descriptions, argument schemas, safety guards, output formatting — and framework adapters only translate them into each framework's tool type.
+
+| Framework | How | Status |
+|-----------|-----|--------|
+| [Agno](/integrations/agno) | `graphrag_sdk.integrations.agno` (Toolkit, Knowledge, model adapters) | Built-in adapter — `pip install "graphrag-sdk[agno]"` |
+| Google Antigravity SDK | `LocalAgentConfig(tools=as_functions(toolset))` | Works today via plain functions |
+| Google ADK | `[FunctionTool(f) for f in as_functions(toolset)]` | Works today via plain functions |
+| pydantic-ai, CrewAI, LangChain | `as_functions(...)` or `ToolSpec.args_model` | Works today; dedicated adapters planned |
+
+## The toolset
+
+`GraphRAGToolset` wraps a `GraphRAG` instance and owns every agent-facing operation:
+
+```python
+from graphrag_sdk import ConnectionConfig, GraphRAG
+from graphrag_sdk.integrations import GraphRAGToolset
+
+rag = GraphRAG(connection=ConnectionConfig(graph_name="kb"), llm=llm, embedder=embedder)
+toolset = GraphRAGToolset(rag, allowed_dirs=["./data"])
+
+result = await toolset.search("Who designed the Analytical Engine?")   # typed SearchResult
+print(result.to_llm_text(max_chars=4000))                              # LLM-ready text
+text = await toolset.acall_text("graph_answer", {"question": "..."})   # generic dispatch
+```
+
+### Tools
+
+| Tool | What it does | Enabled |
+|------|--------------|---------|
+| `graph_search` | Retrieve facts, relationships, entities and source passages (no generation) | always |
+| `graph_answer` | One-shot answer (retrieval + generation) with citations | always |
+| `graph_schema` | Entity/relation types and node/edge counts | always |
+| `graph_remember` | Store text in the graph | unless `read_only=True` |
+| `graph_ingest_file` | Ingest a local file | only with `allowed_dirs` |
+| `graph_flush` | Finalize after a batch of writes (dedup, embeddings, indexes) | with `finalize_policy="manual"` |
+| `cypher_read` | Read-only Cypher (writes rejected, `LIMIT` added) | `enable_cypher=True` |
+| `graph_forget` | Delete a document | `enable_forget=True` |
+
+Every tool returns plain text bounded by `max_output_chars`; failures become a single `Error (<tool>): ...` line the model can act on (set `on_error="raise"` to propagate instead). Search results cite passages as `[Source: <document path>]`.
+
+### Finalization
+
+`GraphRAG.finalize()` must run after ingestion for entity- and relationship-level vector search. `finalize_policy` decides who calls it:
+
+- `"manual"` (default) — the agent calls `graph_flush` once after a batch of writes; until then, `graph_search` / `graph_answer` add a note that new writes are pending.
+- `"on_write"` — finalize after every write (simple, but `finalize()` is O(graph)).
+- `"never"` — your application finalizes.
+
+### Safety
+
+- **File ingestion** is confined to `allowed_dirs`: paths are resolved (symlinks included) and must stay inside an allowed directory; URLs, unsupported suffixes and files over `max_file_bytes` are rejected. The document id defaults to the path *relative* to its directory.
+- **Cypher** is opt-in and passes a fail-closed lexical guard (write keywords, multiple statements, non-allowlisted procedures are rejected) before running through `GraphRAG.query()`. Treat it as best-effort defense in depth.
+- **Writes** are serialized per graph, and `read_only=True` removes every writing tool.
+
+### Event loops
+
+FalkorDB's async connection pool is bound to the event loop that created it, while agent frameworks call tools from sync code, their own loops, or Jupyter. With the default `loop_policy="dedicated"`, every GraphRAG coroutine for a given `GraphRAG` instance runs on one persistent background loop, so sync tools work even inside a running loop. For fully async apps (FastAPI, AgentOS) you can use `loop_policy="caller"`.
+
+Run your own calls on the same instance through the toolset so they share that loop:
+
+```python
+stats = toolset.run(rag.get_statistics())          # sync code
+stats = await toolset.arun(rag.get_statistics())   # async code
+```
+
+## Plain functions for any framework
+
+`as_functions()` exports the enabled tools as real Python functions with a typed signature and a Google-style docstring, which is what most frameworks turn into tool schemas:
+
+```python
+from graphrag_sdk.integrations import as_functions
+
+tools = as_functions(toolset)                      # async functions
+sync_tools = as_functions(toolset, mode="sync")    # sync functions
+renamed = as_functions(toolset, rename={"graph_answer": "ask_knowledge_graph"})
+```
+
+```python Google Antigravity
+from google.antigravity import Agent, LocalAgentConfig
+
+config = LocalAgentConfig(tools=as_functions(toolset))
+async with Agent(config) as agent:
+    await agent.chat("What does the knowledge base say about Ada Lovelace?")
+```
+
+Each `ToolSpec` in `TOOL_REGISTRY` also exposes `args_model` (pydantic) and `input_schema` (JSON Schema) for frameworks that take an explicit schema, e.g. LangChain's `StructuredTool.from_function(..., args_schema=spec.args_model)` or CrewAI's `BaseTool.args_schema`.
+
+## Use any model as GraphRAG's LLM
+
+`CallableLLM` and `CallableEmbedder` wrap plain callables as GraphRAG providers (with retries and timeouts), which is how framework model adapters such as `AgnoLLM` are built:
+
+```python
+from graphrag_sdk.integrations import CallableEmbedder, CallableLLM
+
+llm = CallableLLM(model_name="my-model", chat=lambda messages: my_client.chat(messages))
+embedder = CallableEmbedder(model_name="my-embedder", embed=my_client.embed, dimensions=256)
+```

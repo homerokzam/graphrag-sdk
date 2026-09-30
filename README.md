@@ -245,6 +245,7 @@ guards the default.
 | 9 | [Ontology Evolution](graphrag_sdk/examples/09_ontology_evolution.py) | Mutating schema evolution — rename types and atomically add attributes with LLM backfill |
 | 10 | [Ontology Discovery](graphrag_sdk/examples/10_ontology_discovery.py) | Discover an ontology from raw sources and propose extensions as new docs arrive |
 | 11 | [Structured Ingestion](graphrag_sdk/examples/11_structured_ingestion.py) | Declared mappings end to end, with a re-ingest that corrects a row, adds one and drops one |
+| 12 | [Agno Agent](graphrag_sdk/examples/12_agno_agent.py) | An Agno agent that stores, finalizes and queries a knowledge graph through GraphRAG tools |
 | ★ | [Grounded Answers with Abstention](graphrag_sdk/examples/grounded_answers_with_abstention.py) | Cite the retrieved context behind an answer, and abstain when the graph has no supporting evidence |
 
 ---
@@ -261,6 +262,7 @@ Full documentation: **<https://docs.falkordb.com/graphrag>**
 | [Configuration](https://docs.falkordb.com/graphrag/configuration) | Connection, providers, and tuning reference |
 | [Strategies](https://docs.falkordb.com/graphrag/strategies) | All ABCs and built-in implementations |
 | [Providers](https://docs.falkordb.com/graphrag/providers) | LLM and embedder configuration guide |
+| [Agent Integrations](https://docs.falkordb.com/graphrag/agent-integrations) | Graph tools for AI agents: Agno adapter, plus plain functions for Antigravity, ADK, CrewAI, LangChain |
 | [Reliability and Grounding](https://docs.falkordb.com/graphrag/reliability-and-grounding) | Grounding, provenance and abstention mapped to the APIs that implement them |
 | [Benchmark](https://docs.falkordb.com/graphrag/benchmark) | Methodology, results, and reproduction instructions |
 | [Accuracy Benchmark: FalkorDB vs Vector RAG](https://docs.falkordb.com/graphrag/graphrag-accuracy-benchmark) | 71.48 vs 55.39 comparison, evaluation definition, limitations, how to cite |

@@ -38,6 +38,7 @@ asyncio.run(main())
 pip install graphrag-sdk[litellm]       # OpenAI, Azure, Anthropic, 100+ models
 pip install graphrag-sdk[openrouter]    # OpenRouter models
 pip install graphrag-sdk[pdf]           # PDF ingestion
+pip install graphrag-sdk[agno]          # Agno agent integration
 pip install graphrag-sdk[all]           # Everything
 ```
 
@@ -150,6 +151,21 @@ Every algorithmic concern is a swappable strategy behind an abstract base class:
 | **LiteLLM** | `LiteLLM` | `LiteLLMEmbedder` | OpenAI, Azure, Anthropic, Cohere, 100+ |
 | **OpenRouter** | `OpenRouterLLM` | `OpenRouterEmbedder` | All OpenRouter models |
 | **Custom** | Subclass `LLMInterface` | Subclass `Embedder` | Anything |
+
+## Agent Framework Integrations
+
+Give an AI agent the knowledge graph as tools (search, answer, schema, remember, flush):
+
+```python
+from agno.agent import Agent
+from graphrag_sdk.integrations.agno import GraphRAGTools
+
+agent = Agent(model=..., tools=[GraphRAGTools(rag)])
+```
+
+`graphrag_sdk.integrations` is framework-neutral: `as_functions(GraphRAGToolset(rag))` exports
+the same tools as typed Python functions for Google Antigravity, Google ADK, CrewAI, LangChain
+or pydantic-ai. See the [Agent Integrations guide](https://docs.falkordb.com/graphrag/agent-integrations).
 
 ## Benchmark
 

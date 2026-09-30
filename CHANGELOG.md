@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Agent-framework integrations — a neutral tool core and an Agno adapter
+
+- **`graphrag_sdk.integrations`** is a framework-neutral core for giving AI agents
+  a knowledge graph. `GraphRAGToolset(rag)` owns the agent-facing operations —
+  `graph_search`, `graph_answer`, `graph_schema`, `graph_remember`,
+  `graph_ingest_file`, `graph_flush`, and the opt-in `cypher_read` / `graph_forget` —
+  declared once in `TOOL_REGISTRY` (`ToolSpec`: name, description, pydantic
+  arguments, JSON schema). Results are typed (`SearchResult`, `AnswerResult`,
+  `Citation`, ...) and render to budget-bounded text for the model, with passages
+  cited as `[Source: <document path>]`; failures come back as a one-line
+  `Error (<tool>): ...` the model can act on. Importing it never imports an agent
+  framework.
+- **Safe by default for agent input.** File ingestion is confined to
+  `allowed_dirs` (symlinks resolved, URLs and oversized files refused); Cypher is
+  opt-in behind a fail-closed read-only guard with an enforced `LIMIT`; writes are
+  serialized per graph; `read_only=True` drops every writing tool.
+  `finalize_policy` (`"manual"` / `"on_write"` / `"never"`) decides who runs
+  `finalize()` after writes — by default the agent calls `graph_flush` once per
+  batch and is told when writes are pending.
+- **One event loop per graph.** FalkorDB's async pool is bound to the loop that
+  created it, while agents call tools from sync code, their own loops or Jupyter.
+  The default `loop_policy="dedicated"` runs every coroutine for a `GraphRAG`
+  instance on one background loop, so sync tools also work inside a running loop.
+- **`as_functions(toolset)`** exports the tools as real typed Python functions
+  with Google-style docstrings — usable directly as tools in Google Antigravity
+  (`LocalAgentConfig(tools=...)`), Google ADK, CrewAI, LangChain and pydantic-ai.
+  **`CallableLLM` / `CallableEmbedder`** wrap any chat or embedding callable as a
+  GraphRAG provider (retries, timeouts, structured output).
+- **Agno adapter** (`pip install "graphrag-sdk[agno]"`, agno 3.x):
+  `GraphRAGTools` (a `Toolkit` with sync and async variants of each tool),
+  `GraphRAGKnowledge` (Agno `KnowledgeProtocol`, so `Agent(knowledge=...)` uses
+  graph retrieval), `graphrag_knowledge_retriever` (for `knowledge_retriever=`),
+  and `AgnoLLM` / `AgnoEmbedder` (Agno models as GraphRAG's LLM and embedder).
+  New example `12_agno_agent.py`; new docs pages *Agent Integrations* and *Agno*.
+
 #### Structured ingestion — tables declared on the ontology, one node for a row and its mention
 
 - **`Ontology(tables=[TableMapping(...)])`** declares what a table's columns mean,
