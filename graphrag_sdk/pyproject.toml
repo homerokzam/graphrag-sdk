@@ -58,6 +58,8 @@ litellm = ["litellm>=1.84.0,<2.0"]
 openrouter = ["openai>=1.0,<3.0"]
 fastcoref = ["fastcoref>=2.0"]
 spacy = ["spacy>=3.0"]
+# Agent-framework integrations (graphrag_sdk.integrations.<framework>)
+agno = ["agno>=3.0,<4"]
 all = [
     "openai>=1.0,<3.0",
     "anthropic>=0.20,<1.0",
@@ -72,6 +74,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
     "mypy>=1.10",
+    "agno>=3.0,<4",
 ]
 
 [project.urls]
@@ -95,6 +98,15 @@ select = ["E", "F", "I", "W", "UP"]
 python_version = "3.10"
 strict = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["agno", "agno.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = ["graphrag_sdk.integrations.agno.*"]
+disallow_subclassing_any = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
