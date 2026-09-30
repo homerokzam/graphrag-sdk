@@ -240,3 +240,10 @@ See the [LiteLLM documentation](https://docs.litellm.ai/) for the full list of s
 | **Budget-conscious** | `OpenRouterLLM` for model price comparison |
 | **Local models** | Custom `LLMInterface` wrapping Ollama, vLLM, etc. |
 | **Local embeddings** | Custom `Embedder` wrapping sentence-transformers |
+
+## Framework Model Adapters
+
+To reuse an agent framework's model configuration, wrap its models instead of subclassing:
+
+- `AgnoLLM` / `AgnoEmbedder` wrap Agno models — see [Agno Integration](/integrations/agno).
+- `CallableLLM` / `CallableEmbedder` wrap any chat or embedding callable — see [Agent Integrations](/agent-integrations#use-any-model-as-graphrags-llm).

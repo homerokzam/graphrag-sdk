@@ -76,6 +76,13 @@
                 ]
               },
               {
+                "group": "Integrations",
+                "pages": [
+                  "agent-integrations",
+                  "integrations/agno"
+                ]
+              },
+              {
                 "group": "Reference",
                 "pages": [
                   "strategies",
