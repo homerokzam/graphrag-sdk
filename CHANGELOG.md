@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`LocalAgentConfig(tools=...)`), Google ADK, CrewAI, LangChain and pydantic-ai.
   **`CallableLLM` / `CallableEmbedder`** wrap any chat or embedding callable as a
   GraphRAG provider (retries, timeouts, structured output).
-- **Agno adapter** (`pip install "graphrag-sdk[agno]"`, agno 3.x):
+- **Agno adapter** (`pip install "graphrag-sdk[agno]"`, agno>=3.1.11,<4):
   `GraphRAGTools` (a `Toolkit` with sync and async variants of each tool),
   `GraphRAGKnowledge` (Agno `KnowledgeProtocol`, so `Agent(knowledge=...)` uses
   graph retrieval), `graphrag_knowledge_retriever` (for `knowledge_retriever=`),

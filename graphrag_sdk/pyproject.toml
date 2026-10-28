@@ -59,7 +59,7 @@ openrouter = ["openai>=1.0,<3.0"]
 fastcoref = ["fastcoref>=2.0"]
 spacy = ["spacy>=3.0"]
 # Agent-framework integrations (graphrag_sdk.integrations.<framework>)
-agno = ["agno>=3.0,<4"]
+agno = ["agno>=3.1.11,<4"]
 all = [
     "openai>=1.0,<3.0",
     "anthropic>=0.20,<1.0",
@@ -74,7 +74,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
     "mypy>=1.10",
-    "agno>=3.0,<4",
+    "agno>=3.1.11,<4",
 ]
 
 [project.urls]

@@ -27,6 +27,35 @@ def test_import_error_mentions_extra(monkeypatch: pytest.MonkeyPatch) -> None:
         importlib.import_module("graphrag_sdk.integrations.agno")
 
 
+@pytest.mark.parametrize(
+    ("installed", "accepted"),
+    [
+        ("3.1.11", True),
+        ("3.2.0", True),
+        ("3.1.12rc1", True),
+        ("3.1.10", False),
+        ("3.0.11", False),
+        ("2.9.0", False),
+        ("4.0.0", False),
+    ],
+)
+def test_require_agno_version_window(
+    monkeypatch: pytest.MonkeyPatch, installed: str, accepted: bool
+) -> None:
+    import importlib.metadata
+    import types
+
+    from graphrag_sdk.integrations.agno._compat import require_agno
+
+    monkeypatch.setitem(sys.modules, "agno", types.ModuleType("agno"))
+    monkeypatch.setattr(importlib.metadata, "version", lambda _name: installed)
+    if accepted:
+        require_agno()
+    else:
+        with pytest.raises(ImportError, match=r"agno>=3\.1\.11,<4"):
+            require_agno()
+
+
 agno = pytest.importorskip("agno")
 
 from agno.agent import Agent  # noqa: E402
