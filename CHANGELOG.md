@@ -192,6 +192,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **ruff pinned to 0.17.3 in pre-commit, CI and the `dev` extra.** They used
+  three different versions (v0.9.10, unpinned, `>=0.4`), so the hook reported
+  `UP038` errors in `src/` that CI did not.
+
 - **`finalize()` deduplicates incrementally, with one judge pass, and
   survives a crash.** `finalize()` checks only the entities whose check is
   pending — against the whole graph, through the `__Entity__` vector index,
